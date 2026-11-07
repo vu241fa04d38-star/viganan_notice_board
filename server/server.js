@@ -76,15 +76,24 @@ app.use("/api/feedback", feedbackRouter);
 const distPath = path.join(__dirname, "../dist");
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) return next();
+
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+
     res.sendFile(path.join(distPath, "index.html"));
   });
 }
 
-// 404 handler for API routes
-app.use("/api/*", (req, res) => {
-  res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({
+      error: `Route not found: ${req.method} ${req.originalUrl}`
+    });
+  }
+
+  next();
 });
 
 // Central error handler
@@ -99,10 +108,10 @@ app.use((err, req, res, next) => {
 async function startServer() {
   console.log(`Notice Board API Server starting on port ${PORT}...`);
 
-  app.listen(PORT, () => {
-    console.log(`✓ Server listening on http://localhost:${PORT}`);
-    console.log(`✓ Health check: http://localhost:${PORT}/api/health`);
-  });
+  app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✓ Server listening on port ${PORT}`);
+  console.log(`✓ Health check: /api/health`);
+});
 
   try {
     const isAtlas = MONGODB_URI.includes("mongodb+srv");
